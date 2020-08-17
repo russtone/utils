@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -119,6 +120,24 @@ type iprangeRule struct{}
 func (r *iprangeRule) Validate(value interface{}) error {
 	s := value.(string)
 	if _, err := iprange.Parse(s); err != nil {
+		return err
+	}
+	return nil
+}
+
+//
+// Regexp
+//
+
+func Regexp() validation.Rule {
+	return &regexpRule{}
+}
+
+type regexpRule struct{}
+
+func (r *regexpRule) Validate(value interface{}) error {
+	s := value.(string)
+	if _, err := regexp.Compile(s); err != nil {
 		return err
 	}
 	return nil
