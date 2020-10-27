@@ -9,7 +9,7 @@ import (
 // iterator is an internal iterator state.
 type iterator struct {
 	// IP ranges
-	rr []IPRange
+	rr []IterableRange
 
 	// Index of current IP range.
 	idx int
@@ -20,7 +20,7 @@ type iterator struct {
 
 // NewIterator creates new iterator from IP ranges.
 // Iterator implements iter.Iterator interface.
-func NewIterator(rr ...IPRange) iter.Iterator {
+func NewIterator(rr ...IterableRange) iter.Iterator {
 	return &iterator{
 		rr:  rr,
 		idx: 0,

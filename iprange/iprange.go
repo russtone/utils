@@ -43,15 +43,20 @@ var (
 	ipDashRangeRegexp = regexp.MustCompile(fmt.Sprintf(`^(%[1]v\.){3}%[1]v$`, octetRange))
 )
 
-// IPRange represents common range interface.
-type IPRange interface {
+// Range represents common range interface.
+type Range interface {
 	// Contains checks whether the given IP is in the range.
 	Contains(net.IP) bool
 
 	// Count returns number of IPs in range.
 	Count() uint64
+}
 
-	// next returns next IP address in range.
+type IterableRange interface {
+	Range
+
+	// next returns next IP address in range or nil if there is
+	// no IPs left.
 	next(net.IP) net.IP
 }
 
@@ -61,7 +66,7 @@ type ipSingle struct {
 	net.IP
 }
 
-var _ IPRange = ipSingle{}
+var _ IterableRange = ipSingle{}
 
 // Contains checks whether the given IP is in the range.
 func (r ipSingle) Contains(ip net.IP) bool {
@@ -90,7 +95,7 @@ type ipCIDR struct {
 	*net.IPNet
 }
 
-var _ IPRange = ipCIDR{}
+var _ IterableRange = ipCIDR{}
 
 // Contains checks whether the given IP is in the range.
 func (r ipCIDR) Contains(ip net.IP) bool {
@@ -128,7 +133,7 @@ type ipMinMax struct {
 	min, max net.IP
 }
 
-var _ IPRange = ipMinMax{}
+var _ IterableRange = ipMinMax{}
 
 // Contains checks whether the given IP is in the range.
 func (r ipMinMax) Contains(ip net.IP) bool {
@@ -168,7 +173,7 @@ type ipLowerUpper struct {
 	lower, upper net.IP
 }
 
-var _ IPRange = ipLowerUpper{}
+var _ IterableRange = ipLowerUpper{}
 
 // Contains checks whether the given IP is in the range.
 func (r ipLowerUpper) Contains(ip net.IP) bool {
@@ -213,8 +218,39 @@ func (r ipLowerUpper) next(cur net.IP) net.IP {
 	return nil
 }
 
+// Ranges represents multiple IP Range.
+type Ranges []Range
+
+// Ranges implements Range interface, but
+// doesn't implement IterableRange because
+// to implement it internal state is required.
+// Multiple ranges could be iterated by using iterator interface.
+var _ Range = Ranges{}
+
+// Contains checks whether the given IP is in the range.
+func (rr Ranges) Contains(ip net.IP) bool {
+	for _, r := range rr {
+		if r.Contains(ip) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Count returns number of IP addresses in the range.
+func (rr Ranges) Count() uint64 {
+	count := uint64(0)
+
+	for _, r := range rr {
+		count += r.Count()
+	}
+
+	return count
+}
+
 // Parse parses string and return corresponding IP range.
-func Parse(s string) (IPRange, error) {
+func Parse(s string) (IterableRange, error) {
 
 	switch {
 

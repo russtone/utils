@@ -76,7 +76,7 @@ func TestIterator(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.rng, ","), func(t *testing.T) {
 
-			rr := make([]iprange.IPRange, 0)
+			rr := make([]iprange.IterableRange, 0)
 
 			for _, rng := range tt.rng {
 				r, err := iprange.Parse(rng)
