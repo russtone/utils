@@ -11,22 +11,47 @@ import (
 )
 
 var (
-	octetRegexp      = "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])"
-	octetRangeRegexp = fmt.Sprintf(`(%[1]v(-(%[1]v))?|\*)`, octetRegexp)
-	cidrRegexp       = "/(3[0-2]|2[0-9]|1[0-9]|[0-9])"
-	ipRegexp         = fmt.Sprintf(`(%[1]v\.){3}%[1]v`, octetRegexp)
+	// Matches one IPv4 octet in decimal representation.
+	// Examples: "10", "128", "254"
+	octet = "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])"
 
-	ipOneRegexp       = regexp.MustCompile(fmt.Sprintf(`^(%[1]v\.){3}%[1]v$`, octetRegexp))
-	ipNetRegexp       = regexp.MustCompile(fmt.Sprintf(`^%v%v$`, ipRegexp, cidrRegexp))
-	ipRangeRegexp     = regexp.MustCompile(fmt.Sprintf(`^(%[1]v)-(%[1]v)$`, ipRegexp))
-	ipDashRangeRegexp = regexp.MustCompile(fmt.Sprintf(`^(%[1]v\.){3}%[1]v$`, octetRangeRegexp))
+	// Matches one IPv4 octet dash range.
+	// Examples: "1-10", 128-255", "*"
+	octetRange = fmt.Sprintf(`(%[1]v(-(%[1]v))?|\*)`, octet)
+
+	// Matches IPv4 mask.
+	// Examples: "/32", "/24"
+	mask = "/(3[0-2]|2[0-9]|1[0-9]|[0-9])"
+
+	// Matches IPv4 address.
+	// Examples: "192.168.1.1", "127.0.0.1"
+	ip = fmt.Sprintf(`(%[1]v\.){3}%[1]v`, octet)
+
+	// Matches exactly one IPv4 address.
+	ipOneRegexp = regexp.MustCompile(fmt.Sprintf(`^%v$`, ip))
+
+	// Matches IPv4 CIDR.
+	// Examples: "192.168.1.1/24", "127.0.0.1/30"
+	ipNetRegexp = regexp.MustCompile(fmt.Sprintf(`^%v%v$`, ip, mask))
+
+	// Matches IPv4 dash range.
+	// Examples: "192.168.1.1-192.168.2.20"
+	ipRangeRegexp = regexp.MustCompile(fmt.Sprintf(`^(%[1]v)-(%[1]v)$`, ip))
+
+	// Matches IPv4 with octet ranges.
+	// Examples: "192.168.1.1-10", "192.168-169.1-2.1-20", "192.168.1.*"
+	ipDashRangeRegexp = regexp.MustCompile(fmt.Sprintf(`^(%[1]v\.){3}%[1]v$`, octetRange))
 )
 
 // IPRange represents common range interface.
 type IPRange interface {
 	// Contains checks whether the given IP is in the range.
 	Contains(net.IP) bool
+
+	// Count returns number of IPs in range.
 	Count() uint64
+
+	// next returns next IP address in range.
 	next(net.IP) net.IP
 }
 
@@ -227,6 +252,7 @@ func Parse(s string) (IPRange, error) {
 
 		for i, part := range parts {
 
+			// "*" = "0-255"
 			if part == "*" {
 				lower[i] = 0
 				upper[i] = 0xff
