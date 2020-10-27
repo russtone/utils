@@ -1,7 +1,6 @@
 package iprange_test
 
 import (
-	"net"
 	"strings"
 	"testing"
 
@@ -89,10 +88,11 @@ func TestIterator(t *testing.T) {
 			it := iprange.NewIterator(rr...)
 
 			res := make([]string, 0)
-			ip := net.IPv4(0, 0, 0, 0)
 
-			for it.Next(ip) {
-				res = append(res, ip.String())
+			var ip string
+
+			for it.Next(&ip) {
+				res = append(res, ip)
 			}
 
 			assert.Equal(t, tt.res, res)

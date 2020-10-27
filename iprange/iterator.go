@@ -2,13 +2,9 @@ package iprange
 
 import (
 	"net"
-)
 
-type Iterator interface {
-	Next(net.IP) bool
-	Count() uint64
-	Reset()
-}
+	"github.com/russtone/utils/iter"
+)
 
 type iterator struct {
 	rr  []IPRange
@@ -16,7 +12,7 @@ type iterator struct {
 	cur net.IP
 }
 
-func NewIterator(rr ...IPRange) Iterator {
+func NewIterator(rr ...IPRange) iter.Iterator {
 	return &iterator{
 		rr:  rr,
 		idx: 0,
@@ -24,11 +20,7 @@ func NewIterator(rr ...IPRange) Iterator {
 	}
 }
 
-func (it *iterator) Next(out net.IP) bool {
-	if out.To16() != nil {
-		out = out.To4()
-	}
-
+func (it *iterator) Next(out *string) bool {
 	for i := it.idx; i < len(it.rr); i++ {
 		it.cur = it.rr[i].next(it.cur)
 		if it.cur != nil {
@@ -39,7 +31,7 @@ func (it *iterator) Next(out net.IP) bool {
 	}
 
 	if it.cur != nil {
-		copy(out, it.cur)
+		*out = it.cur.String()
 		return true
 	}
 
@@ -59,4 +51,8 @@ func (it *iterator) Count() uint64 {
 func (it *iterator) Reset() {
 	it.cur = nil
 	it.idx = 0
+}
+
+func (it *iterator) Close() error {
+	return nil
 }
